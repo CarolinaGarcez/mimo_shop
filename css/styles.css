@@ -285,8 +285,14 @@
 @media(prefers-reduced-motion:reduce){.site-footer .footer-column>a,.site-footer .footer-legal a{transition:none}}
 
 /* Background oficial e composição do hero conforme o mockup Mimo Digital */
-body{position:relative;isolation:isolate;background:var(--color-cream)}
-body::before{position:absolute;z-index:-1;inset:0;content:"";background-image:url('../assets/img/bg/Fundo.png');background-position:center top;background-size:100% auto;background-repeat:repeat-y;pointer-events:none}
+body{background:var(--color-cream)}
+.category-showcase,.products-section,.about-section,.personalized-section{position:relative;isolation:isolate;background-color:var(--color-cream)}
+.category-showcase::before,.products-section::before,.about-section::before,.personalized-section::before,.store-benefits::before{position:absolute;z-index:-1;inset:0;content:"";background-image:url('../assets/img/bg/Fundo.png');background-size:100% auto;background-repeat:no-repeat;opacity:.68;mask-image:linear-gradient(to bottom,transparent 0%,#000 9%,#000 91%,transparent 100%);pointer-events:none}
+.category-showcase::before{background-position:center 18%}
+.products-section::before{background-position:center 54%}
+.about-section::before{background-position:center 22%}
+.personalized-section::before{background-position:center 72%}
+.store-benefits::before{background-position:center 42%}
 .hero{min-height:clamp(540px,51.2vw,760px);padding:48px 0 104px;background-color:var(--color-cream);background-image:url('../assets/img/bg/banner.png');background-position:center center;background-size:cover;background-repeat:no-repeat}
 .hero-grid{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);align-items:center;gap:clamp(24px,3vw,42px);min-height:0}
 .hero-copy{max-width:600px;padding:0}
@@ -321,7 +327,8 @@ body::before{position:absolute;z-index:-1;inset:0;content:"";background-image:ur
   .store-benefit-grid{border-radius:24px}
 }
 @media(max-width:700px){
-  body::before{opacity:.42}
+  .category-showcase::before,.products-section::before,.about-section::before,.personalized-section::before,.store-benefits::before{opacity:.22}
+  .about-copy,.personalized-copy{padding:16px;border-radius:18px;background:rgba(255,241,220,.78)}
   .hero{padding:38px 0 82px;background-image:url('../assets/img/bg/Fundo.png');background-position:center top;background-size:auto 100%}
   .hero-grid{grid-template-columns:minmax(0,1fr);gap:14px}
   .hero-copy{width:min(100%,560px);margin-inline:auto}
