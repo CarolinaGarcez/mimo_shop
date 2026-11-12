@@ -25,7 +25,7 @@ if (personalizedContact) {
   const number = (personalizedContact.dataset.whatsappNumber || '').replace(/\D/g, '');
   const message = personalizedContact.dataset.whatsappMessage || '';
   if (/^\d{10,15}$/.test(number) && message) {
-    personalizedContact.href = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+    personalizedContact.href = `https://api.whatsapp.com/send/?phone=${number}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
   } else {
     personalizedContact.href = 'https://wa.me/';
     personalizedContact.setAttribute('aria-disabled', 'true');
@@ -41,19 +41,70 @@ async function loadProducts() {
   const carousel = grid.closest('.products-carousel');
   const previousButton = carousel?.querySelector('.products-previous');
   const nextButton = carousel?.querySelector('.products-next');
+  const title = document.querySelector('#products-title');
+  const filterStatus = document.querySelector('#products-filter-status');
+  const filterReset = document.querySelector('#products-filter-reset');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   let originals = [...grid.children];
+  const categoryKey = new URLSearchParams(window.location.search).get('categoria');
+  const categoryDefinitions = {
+    'livros-colorir': { label: 'Livros de Colorir', matches: ['livro', 'colorir', 'coloracao'] },
+    'cartoes-digitais': { label: 'Cartões Digitais', matches: ['cartao', 'cartoes'] },
+    'calendarios-organizacao': { label: 'Calendários e Organização', matches: ['calendario', 'planner', 'organizacao'] }
+  };
+  const selectedCategory = categoryDefinitions[categoryKey];
+  const normalizeCategory = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const matchesCategory = (product, definition) => {
+    const values = [product.category, ...(Array.isArray(product.categories) ? product.categories : [])].filter(Boolean);
+    return values.some((value) => {
+      const normalized = normalizeCategory(value);
+      return definition.matches.some((term) => normalized.includes(term));
+    });
+  };
+  const safeHttpUrl = (value, base = window.location.href) => {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    try {
+      const url = new URL(value.trim(), base);
+      return ['https:', 'http:'].includes(url.protocol) ? url : null;
+    } catch {
+      return null;
+    }
+  };
+  const validCheckoutUrl = (value) => {
+    const url = safeHttpUrl(value);
+    if (!url || url.protocol !== 'https:') return null;
+    const host = url.hostname.toLowerCase();
+    return host === 'kiwify.com.br' || host.endsWith('.kiwify.com.br') ? url : null;
+  };
+  const isPublishedProduct = (product) => product
+    && product.status === 'published'
+    && typeof product.name === 'string' && product.name.trim()
+    && typeof product.description === 'string' && product.description.trim()
+    && typeof product.image === 'string' && safeHttpUrl(product.image);
 
   try {
     const response = await fetch('data/products.json');
     if (response.ok) {
       const products = await response.json();
-      const featuredProducts = Array.isArray(products)
-        ? products.filter((product) => product?.featured === true && product.name && product.image)
+      const catalogProducts = Array.isArray(products)
+        ? products.filter(isPublishedProduct)
         : [];
-      if (featuredProducts.length) {
+      const visibleProducts = selectedCategory
+        ? catalogProducts.filter((product) => matchesCategory(product, selectedCategory))
+        : catalogProducts.filter((product) => product.featured === true).slice(0, 4);
+      if (selectedCategory) {
+        if (title) title.textContent = selectedCategory.label;
+        if (filterStatus) {
+          filterStatus.textContent = visibleProducts.length
+            ? `Produtos disponíveis em ${selectedCategory.label}.`
+            : `Ainda não há produtos disponíveis em ${selectedCategory.label}.`;
+          filterStatus.hidden = false;
+        }
+        if (filterReset) filterReset.hidden = false;
+      }
+      if (visibleProducts.length) {
         let productCardNumber = 0;
-        originals = featuredProducts.map((product) => {
+        originals = visibleProducts.map((product) => {
           const card = document.createElement('article');
           card.className = 'card product-card';
           card.tabIndex = 0;
@@ -91,29 +142,47 @@ async function loadProducts() {
             details.append(description);
           }
 
-          if (product.price !== undefined && product.price !== null && product.price !== '') {
+          const metadata = [];
+          if (typeof product.format === 'string' && product.format.trim()) metadata.push(product.format.trim());
+          if (Number.isInteger(product.pageCount) && product.pageCount > 0) metadata.push(`${product.pageCount} páginas`);
+          if (Number.isInteger(product.fileCount) && product.fileCount > 0) metadata.push(`${product.fileCount} arquivos`);
+          if (metadata.length) {
+            const meta = document.createElement('p');
+            meta.className = 'product-meta';
+            meta.textContent = metadata.join(' · ');
+            details.append(meta);
+          }
+
+          if (typeof product.price === 'number' && Number.isFinite(product.price) && product.price >= 0) {
             const price = document.createElement('p');
             price.className = 'product-price';
-            price.textContent = typeof product.price === 'number'
-              ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)
-              : String(product.price);
+            price.textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price);
             details.append(price);
           }
 
-          const productUrl = product.url || product.detailsUrl;
-          if (productUrl) {
-            try {
-              const detailsUrl = new URL(productUrl, window.location.href);
-              if (detailsUrl.protocol === 'https:' || detailsUrl.protocol === 'http:') {
-                const link = document.createElement('a');
-                link.className = 'product-link';
-                link.href = detailsUrl.href;
-                link.textContent = 'Ver produto';
-                details.append(link);
-              }
-            } catch { /* omite destinos inválidos até o catálogo ser corrigido */ }
+          const detailsUrl = safeHttpUrl(product.detailsUrl) || safeHttpUrl(product.url);
+          if (detailsUrl) {
+            const link = document.createElement('a');
+            link.className = 'product-link';
+            link.href = detailsUrl.href;
+            link.textContent = 'Ver detalhes';
+            if (detailsUrl.origin !== window.location.origin) {
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+            }
+            details.append(link);
           }
 
+          const checkoutUrl = validCheckoutUrl(product.checkoutUrl);
+          if (checkoutUrl) {
+            const checkout = document.createElement('a');
+            checkout.className = 'product-link product-checkout-link';
+            checkout.href = checkoutUrl.href;
+            checkout.textContent = 'Comprar';
+            checkout.target = '_blank';
+            checkout.rel = 'noopener noreferrer';
+            details.append(checkout);
+          }
           card.append(details);
 
           const reveal = document.createElement('button');
@@ -125,12 +194,22 @@ async function loadProducts() {
           card.append(reveal);
           return card;
         });
+      } else if (selectedCategory) {
+        const empty = document.createElement('article');
+        empty.className = 'empty-state product-placeholder';
+        const heading = document.createElement('h3');
+        heading.textContent = 'Em breve';
+        const message = document.createElement('p');
+        message.textContent = `Ainda não há produtos disponíveis nesta categoria. Volte em breve para conferir as novidades.`;
+        empty.append(heading, message);
+        originals = [empty];
       }
     }
   } catch { /* os cards provisórios continuam disponíveis sem catálogo */ }
 
   grid.replaceChildren(...originals);
   const productCount = originals.filter((card) => card.classList.contains('product-card')).length;
+  grid.dataset.productCount = String(productCount);
   const count = originals.length;
   if (productCount < 4 || !carousel || !previousButton || !nextButton) return;
 

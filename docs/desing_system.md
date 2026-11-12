@@ -7,19 +7,21 @@ Direção: retrô criativo equilibrado
 1. Criativo, não confuso: padrões vibrantes apenas nas bordas, banners e detalhes; preservar áreas de leitura limpas.
 2. Afetivo, não infantil: formas suaves, ilustrações expressivas e personalidade editorial.
 3. Loja primeiro: preço, descrição, categoria e CTA precisam ser mais claros que a decoração.
-4. Marca preservada: usar assets/images/logo.png e assets/images/perfil.png sem redesenhar, distorcer ou recolorir.
+4. Marca preservada: usar assets/img/logo/logo1.png (logo oficial) e assets/img/logo/perfil.png sem redesenhar, distorcer ou recolorir. Versões WebP podem ser usadas para entrega web, mantendo os PNGs originais como fonte.
 5. Consistência: usar os tokens deste documento, sem espalhar cores e medidas arbitrárias pelo código.
 
 2. Paleta / tokens de cor
 Token	HEX	Uso
---color-pink	#F50078	CTA principal, links ativos, detalhes
+--color-pink	#F50078	Acentos visuais, ícones e detalhes
+--color-pink-contrast	#C90061	Texto pequeno, links ativos e CTAs com texto branco
 --color-purple	#4B0750	títulos, ícones e texto forte
 --color-cream	#FFF1DC	fundo principal
 --color-paper	#FFF9F0	cartões e superfícies
 --color-gold	#F5A400	estrelas e destaques decorativos
 --color-rose	#F9C5D8	fundos de cards e faixas
 --color-teal	#237D78	detalhes secundários
---color-orange	#F36A21	acentos retrô
+--color-orange	#F36A21	Acentos retrô
+--color-orange-text	#AD4814	Texto laranja sobre creme
 --color-border	#E8C5B5	bordas suaves
 --color-text	#301B35	texto de corpo
 --color-white	#FFFFFF	texto em botões escuros
@@ -28,8 +30,9 @@ Token	HEX	Uso
 Regra: pink e roxo são as cores estruturais. Laranja, verde e dourado são acentos. O creme ocupa a maior parte do fundo.
 
 3. Tipografia
-- Títulos editoriais: Fraunces, serif, peso 700–800; alternativa Georgia.
-- Interface, corpo e botões: Nunito Sans, sans-serif, pesos 400–800; alternativa Arial.
+- Títulos editoriais: Young Serif, serif; alternativa Georgia.
+- Interface, corpo e botões: Space Grotesk, sans-serif, pesos 400–700; alternativa Arial.
+- Frases e detalhes manuscritos: Caveat, pesos 500 e 700, apenas como fonte de acento.
 - Logo: sempre imagem original; nunca tentar reconstruí-la com fontes.
 - H1 desktop: clamp(2.5rem, 5vw, 4.75rem); line-height 1.05.
 - H2: clamp(1.8rem, 3vw, 2.8rem); line-height 1.15.
@@ -56,8 +59,8 @@ Não exibir carrinho, conta ou login como funcionais na V1, porque o checkout se
 
 6. Botões
 Primário
-- Fundo pink; texto branco; peso 800; altura mínima 48px; radius pill.
-- Hover: pink mais escuro #C90061; foco visível com outline roxo.
+- Fundo pink acessível #C90061; texto branco; peso 800; altura mínima 48px; radius pill.
+- Hover: pink mais escuro #A80051; foco visível com outline roxo.
 - Usos: Explorar a loja, Comprar agora (apenas com checkout válido).
 Secundário
 - Fundo transparente/papel; borda roxa 1.5px; texto roxo.
@@ -70,7 +73,7 @@ Estado desabilitado
 7. Componentes
 Header
 - Fundo creme/papel; logo horizontal à esquerda, menu ao centro/direita.
-- Links: Início, Loja, Personalizados, Sobre, Ajuda.
+- Links: Início, Loja, Personalizados, Sobre, Contato.
 - Mobile: botão menu com aria-expanded, navegação acessível.
 - Não exibir conta/carrinho próprios na V1.
 Hero

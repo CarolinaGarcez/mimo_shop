@@ -1,8 +1,9 @@
 /* Mimo  — Design tokens V1.0 */
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Space+Grotesk:wght@400;500;600;700&family=Young+Serif&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Young+Serif&display=swap');
 :root {
   --color-pink: #F50078;
-  --color-pink-hover: #C90061;
+  --color-pink-contrast: #C90061;
+  --color-pink-hover: #A80051;
   --color-purple: #4B0750;
   --color-cream: #FFF1DC;
   --color-paper: #FFF9F0;
@@ -10,6 +11,7 @@
   --color-rose: #F9C5D8;
   --color-teal: #237D78;
   --color-orange: #F36A21;
+  --color-orange-text: #AD4814;
   --color-border: #E8C5B5;
   --color-text: #301B35;
   --color-white: #FFFFFF;
@@ -29,7 +31,7 @@ h1 { font-size: clamp(2.5rem,5vw,4.75rem); line-height: 1.05; }
 h2 { font-size: clamp(1.8rem,3vw,2.8rem); line-height: 1.15; }
 .container { width: min(var(--container-width), calc(100% - 32px)); margin-inline: auto; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 12px 24px; border-radius: var(--radius-pill); font: 800 1rem var(--font-body); text-decoration: none; cursor: pointer; transition: background-color .2s ease, transform .2s ease; }
-.btn-primary { background: var(--color-pink); color: var(--color-white); border: 2px solid var(--color-pink); }
+.btn-primary { background: var(--color-pink-contrast); color: var(--color-white); border: 2px solid var(--color-pink-contrast); }
 .btn-primary:hover { background: var(--color-pink-hover); border-color: var(--color-pink-hover); }
 .btn-secondary { background: var(--color-paper); color: var(--color-purple); border: 2px solid var(--color-purple); }
 .btn-secondary:hover { background: var(--color-rose); }
