@@ -5,6 +5,7 @@ Esta pasta reúne os HTMLs usados como ponto de partida para mensagens no Brevo.
 ## Arquivos
 
 - `boas-vindas.html` — apresentação do Mimo Digital, categorias, serviços personalizados e seção institucional da Vira Mato.
+- `boas-vindas.txt` — versão equivalente em texto simples do e-mail de boas-vindas.
 - `lancamento-produto.html` — modelo com campos visíveis de exemplo para nome, descrição, conteúdo e preço de um produto real.
 - `newsletter.html` — modelo com blocos de exemplo para novidades, dicas e destaques editoriais.
 
@@ -20,10 +21,11 @@ As imagens usadas são assets originais já presentes no repositório e hospedad
 | Estrela decorativa | `assets/img/elementos/star.webp` | `https://mimo-shop.pages.dev/assets/img/elementos/star.webp` |
 | Flor decorativa | `assets/img/ilustracoes/Adesivo de flor.webp` | `https://mimo-shop.pages.dev/assets/img/ilustracoes/Adesivo%20de%20flor.webp` |
 | Lótus decorativa | `assets/img/ilustracoes/Adesivo de lótus.webp` | `https://mimo-shop.pages.dev/assets/img/ilustracoes/Adesivo%20de%20l%C3%B3tus.webp` |
+| Logo branca Vira Mato | `assets/img/vira mato/logo-branco.png` | `https://mimo-shop.pages.dev/assets/img/vira%20mato/logo-branco.png` |
 
 Os links da loja e do catálogo vêm da referência fornecida e da estrutura atual do site: `https://mimo-shop.pages.dev/` e `https://mimo-shop.pages.dev/catalogo.html`. Confirme que o domínio e as páginas continuam publicados antes de cada campanha.
 
-A logo branca da Vira Mato existe no repositório em `assets/img/vira mato/logo-branco.png`, mas a URL correspondente no site público não serviu a imagem durante a verificação. Por isso, o modelo de boas-vindas apresenta a Vira Mato em texto e usa o link do site institucional já presente no repositório. Não crie uma URL pública para essa imagem sem publicá-la primeiro.
+As URLs das imagens listadas acima foram verificadas por HTTPS e responderam publicamente durante a atualização do template. A rota pública de privacidade é `https://mimo-shop.pages.dev/privacidade`; a variante `/privacidade.html` redireciona para ela. Confirme que as URLs continuam disponíveis antes de cada campanha.
 
 ## Editar e personalizar
 
@@ -38,7 +40,7 @@ A logo branca da Vira Mato existe no repositório em `assets/img/vira mato/logo-
 
 Antes de enviar:
 
-1. Abra cada HTML em um navegador e confira larguras desktop (600 px) e mobile (390 px), especialmente colunas, botões, texto e imagens.
+1. Abra cada HTML em um navegador e confira larguras desktop (600 px) e mobile (390 px), especialmente colunas, botões, texto e imagens. Para boas-vindas, consulte também `boas-vindas.txt` como alternativa em texto simples.
 2. Na conta Brevo, cole o HTML em uma mensagem de teste e use a pré-visualização desktop/mobile.
 3. Envie testes para caixas de Gmail e Outlook e, se disponível, confira um cliente Apple Mail/iOS. Compare também com imagens bloqueadas: os links e textos precisam continuar compreensíveis.
 4. Confirme todas as imagens HTTPS, links de destino, assunto, preheader, remetente e conteúdo de exemplo substituído.
@@ -72,4 +74,4 @@ Use `lancamento-produto.html` e `newsletter.html` em campanhas planejadas para a
 
 - Confirmar na conta Brevo o remetente verificado, o endereço postal/legal, a página de descadastro e a lista que acionará a automação.
 - Substituir os campos editoriais de exemplo nos modelos de lançamento e newsletter antes de cada uso.
-- Publicar a logo branca da Vira Mato em um caminho HTTPS antes de tentar exibi-la em e-mails; por enquanto, a seção institucional é textual.
+- Confirmar na prévia do Brevo e em caixas de teste que a logo branca da Vira Mato permanece legível no bloco escuro e que todas as imagens públicas são carregadas.

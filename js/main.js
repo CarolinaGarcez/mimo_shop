@@ -35,380 +35,95 @@ if (personalizedContact) {
 }
 
 async function loadProducts() {
-  const grid = document.querySelector('#products-grid');
-  if (!grid) return;
-
-  const carousel = grid.closest('.products-carousel');
-  const previousButton = carousel?.querySelector('.products-previous');
-  const nextButton = carousel?.querySelector('.products-next');
-  const title = document.querySelector('#products-title');
-  const filterStatus = document.querySelector('#products-filter-status');
-  const filterReset = document.querySelector('#products-filter-reset');
+  const viewport = document.querySelector('#products-grid');
+  const carousel = viewport?.closest('.products-carousel');
+  if (!viewport || !carousel) return;
+  const toggle = document.querySelector('#products-motion-toggle');
+  const previous = carousel.querySelector('.products-previous');
+  const next = carousel.querySelector('.products-next');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  let originals = [...grid.children];
-  const categoryKey = new URLSearchParams(window.location.search).get('categoria');
-  const categoryDefinitions = {
-    'livros-colorir': { label: 'Livros de Colorir', matches: ['livro', 'colorir', 'coloracao'] },
-    'cartoes-digitais': { label: 'Cartões Digitais', matches: ['cartao', 'cartoes'] },
-    'calendarios-organizacao': { label: 'Calendários e Organização', matches: ['calendario', 'planner', 'organizacao'] }
+  const safeUrl = (value) => { if (typeof value !== 'string' || !value.trim()) return null; try { const url = new URL(value.trim(), location.href); return ['https:', 'http:'].includes(url.protocol) ? url : null; } catch { return null; } };
+  const checkoutUrl = (value) => { const url = safeUrl(value); return url?.protocol === 'https:' && (url.hostname === 'kiwify.com.br' || url.hostname.endsWith('.kiwify.com.br')) ? url : null; };
+  const money = (value) => typeof value === 'number' && Number.isFinite(value) ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) : '';
+  const productImage = (product) => safeUrl(product.image) || (product.category === 'cartoes-digitais' ? safeUrl('assets/img/categoria/Cart%C3%B5es.png') : null);
+  const categoryName = (value) => ({ 'cartoes-digitais': 'Cartões digitais', 'livros-colorir': 'Livros de colorir', 'calendarios-organizacao': 'Calendários e organização' }[value] || String(value || 'Destaque').replace(/[-_]/g, ' '));
+  let products = [];
+  try { const response = await fetch('data/products.json'); if (response.ok) { const data = await response.json(); products = Array.isArray(data) ? data.filter((p) => p?.status === 'published' && p.featured === true && p.name?.trim() && p.description?.trim()).slice(0, 8) : []; } } catch { /* mantém placeholder */ }
+  const dialog = document.querySelector('#featured-product-preview');
+  const openPreview = (product) => {
+    if (!dialog) return;
+    const visual = dialog.querySelector('.featured-preview-image'); visual.replaceChildren();
+    const image = productImage(product);
+    if (image) { const img = document.createElement('img'); img.src = image.href; img.alt = product.imageAlt || (product.image ? product.name : 'Ilustração em aquarela de cartões digitais'); visual.append(img); }
+    else { const mark = document.createElement('span'); mark.className = 'product-image-placeholder'; mark.textContent = '✦'; mark.setAttribute('aria-hidden', 'true'); visual.append(mark); }
+    dialog.querySelector('#featured-preview-title').textContent = product.name;
+    dialog.querySelector('.featured-preview-description').textContent = product.fullDescription || product.description;
+    const contents = dialog.querySelector('.featured-preview-contents'); contents.textContent = Array.isArray(product.kitContents) ? product.kitContents.join(' · ') : ''; contents.hidden = !contents.textContent;
+    dialog.querySelector('.featured-preview-price').textContent = money(product.price);
+    const action = dialog.querySelector('.featured-preview-action'); action.replaceChildren();
+    const url = checkoutUrl(product.checkoutUrl);
+    if (url) { const link = document.createElement('a'); link.className = 'btn btn-primary'; link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Comprar'; action.append(link); }
+    else { const button = document.createElement('button'); button.className = 'btn btn-primary'; button.type = 'button'; button.disabled = true; button.textContent = 'Em breve'; action.append(button); }
+    dialog.showModal(); dialog.querySelector('.featured-preview-close').focus();
   };
-  const selectedCategory = categoryDefinitions[categoryKey];
-  const normalizeCategory = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const matchesCategory = (product, definition) => {
-    const values = [product.category, ...(Array.isArray(product.categories) ? product.categories : [])].filter(Boolean);
-    return values.some((value) => {
-      const normalized = normalizeCategory(value);
-      return definition.matches.some((term) => normalized.includes(term));
-    });
+  dialog?.querySelector('.featured-preview-close')?.addEventListener('click', () => dialog.close());
+  dialog?.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+  const makeCard = (product) => {
+    const card = document.createElement('article'); card.className = 'card product-card'; card.dataset.productId = product.id || '';
+    const frame = document.createElement('div'); frame.className = 'product-image-frame';
+    const image = productImage(product);
+    if (image) { const img = document.createElement('img'); img.src = image.href; img.alt = product.imageAlt || (product.image ? product.name : 'Ilustração em aquarela de cartões digitais'); img.loading = 'lazy'; img.decoding = 'async'; frame.append(img); }
+    else { frame.classList.add('is-placeholder'); const mark = document.createElement('span'); mark.className = 'product-image-placeholder'; mark.textContent = '✦'; mark.setAttribute('aria-hidden', 'true'); frame.append(mark); }
+    const info = document.createElement('div'); info.className = 'product-info';
+    const category = document.createElement('span'); category.className = 'product-category'; category.textContent = categoryName(product.category); info.append(category);
+    const title = document.createElement('h3'); title.textContent = product.name; info.append(title);
+    const description = document.createElement('p'); description.className = 'product-description'; description.textContent = product.shortDescription || product.description; info.append(description);
+    const price = document.createElement('p'); price.className = 'product-price'; price.textContent = money(product.price); info.append(price);
+    const actions = document.createElement('div'); actions.className = 'product-actions';
+    const preview = document.createElement('button'); preview.type = 'button'; preview.className = 'product-link product-preview-link'; preview.textContent = 'Ver prévia'; preview.setAttribute('aria-label', `Ver prévia de ${product.name}`); preview.addEventListener('click', () => openPreview(product)); actions.append(preview);
+    const buyUrl = checkoutUrl(product.checkoutUrl);
+    if (buyUrl) { const buy = document.createElement('a'); buy.className = 'product-link product-checkout-link'; buy.href = buyUrl.href; buy.target = '_blank'; buy.rel = 'noopener noreferrer'; buy.textContent = 'Comprar'; actions.append(buy); }
+    else { const unavailable = document.createElement('button'); unavailable.type = 'button'; unavailable.className = 'product-link product-unavailable'; unavailable.textContent = 'Em breve'; unavailable.disabled = true; actions.append(unavailable); }
+    info.append(actions); card.append(frame, info); return card;
   };
-  const safeHttpUrl = (value, base = window.location.href) => {
-    if (typeof value !== 'string' || !value.trim()) return null;
-    try {
-      const url = new URL(value.trim(), base);
-      return ['https:', 'http:'].includes(url.protocol) ? url : null;
-    } catch {
-      return null;
-    }
-  };
-  const validCheckoutUrl = (value) => {
-    const url = safeHttpUrl(value);
-    if (!url || url.protocol !== 'https:') return null;
-    const host = url.hostname.toLowerCase();
-    return host === 'kiwify.com.br' || host.endsWith('.kiwify.com.br') ? url : null;
-  };
-  const isPublishedProduct = (product) => product
-    && product.status === 'published'
-    && typeof product.name === 'string' && product.name.trim()
-    && typeof product.description === 'string' && product.description.trim()
-    && typeof product.image === 'string' && safeHttpUrl(product.image);
-
-  try {
-    const response = await fetch('data/products.json');
-    if (response.ok) {
-      const products = await response.json();
-      const catalogProducts = Array.isArray(products)
-        ? products.filter(isPublishedProduct)
-        : [];
-      const visibleProducts = selectedCategory
-        ? catalogProducts.filter((product) => matchesCategory(product, selectedCategory))
-        : catalogProducts.filter((product) => product.featured === true).slice(0, 4);
-      if (selectedCategory) {
-        if (title) title.textContent = selectedCategory.label;
-        if (filterStatus) {
-          filterStatus.textContent = visibleProducts.length
-            ? `Produtos disponíveis em ${selectedCategory.label}.`
-            : `Ainda não há produtos disponíveis em ${selectedCategory.label}.`;
-          filterStatus.hidden = false;
-        }
-        if (filterReset) filterReset.hidden = false;
-      }
-      if (visibleProducts.length) {
-        let productCardNumber = 0;
-        originals = visibleProducts.map((product) => {
-          const card = document.createElement('article');
-          card.className = 'card product-card';
-          card.tabIndex = 0;
-          card.setAttribute('aria-label', product.name);
-          if (product.id !== undefined && product.id !== null) card.dataset.productId = String(product.id);
-
-          const imageFrame = document.createElement('div');
-          imageFrame.className = 'product-image-frame';
-          const image = document.createElement('img');
-          image.src = product.image;
-          image.alt = product.imageAlt || product.name;
-          image.loading = 'lazy';
-          image.decoding = 'async';
-          imageFrame.append(image);
-          card.append(imageFrame);
-
-          const details = document.createElement('div');
-          details.className = 'product-info';
-          details.id = `product-info-${++productCardNumber}`;
-          if (product.category) {
-            const category = document.createElement('span');
-            category.className = 'product-category';
-            category.textContent = product.category;
-            details.append(category);
-          }
-
-          const title = document.createElement('h3');
-          title.textContent = product.name;
-          details.append(title);
-
-          if (product.description) {
-            const description = document.createElement('p');
-            description.className = 'product-description';
-            description.textContent = product.description;
-            details.append(description);
-          }
-
-          const metadata = [];
-          if (typeof product.format === 'string' && product.format.trim()) metadata.push(product.format.trim());
-          if (Number.isInteger(product.pageCount) && product.pageCount > 0) metadata.push(`${product.pageCount} páginas`);
-          if (Number.isInteger(product.fileCount) && product.fileCount > 0) metadata.push(`${product.fileCount} arquivos`);
-          if (metadata.length) {
-            const meta = document.createElement('p');
-            meta.className = 'product-meta';
-            meta.textContent = metadata.join(' · ');
-            details.append(meta);
-          }
-
-          if (typeof product.price === 'number' && Number.isFinite(product.price) && product.price >= 0) {
-            const price = document.createElement('p');
-            price.className = 'product-price';
-            price.textContent = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price);
-            details.append(price);
-          }
-
-          const detailsUrl = safeHttpUrl(product.detailsUrl) || safeHttpUrl(product.url);
-          if (detailsUrl) {
-            const link = document.createElement('a');
-            link.className = 'product-link';
-            link.href = detailsUrl.href;
-            link.textContent = 'Ver detalhes';
-            if (detailsUrl.origin !== window.location.origin) {
-              link.target = '_blank';
-              link.rel = 'noopener noreferrer';
-            }
-            details.append(link);
-          }
-
-          const checkoutUrl = validCheckoutUrl(product.checkoutUrl);
-          if (checkoutUrl) {
-            const checkout = document.createElement('a');
-            checkout.className = 'product-link product-checkout-link';
-            checkout.href = checkoutUrl.href;
-            checkout.textContent = 'Comprar';
-            checkout.target = '_blank';
-            checkout.rel = 'noopener noreferrer';
-            details.append(checkout);
-          }
-          card.append(details);
-
-          const reveal = document.createElement('button');
-          reveal.className = 'product-reveal-toggle';
-          reveal.type = 'button';
-          reveal.setAttribute('aria-expanded', 'false');
-          reveal.setAttribute('aria-controls', details.id);
-          reveal.setAttribute('aria-label', `Mostrar informações de ${product.name}`);
-          card.append(reveal);
-          return card;
-        });
-      } else if (selectedCategory) {
-        const empty = document.createElement('article');
-        empty.className = 'empty-state product-placeholder';
-        const heading = document.createElement('h3');
-        heading.textContent = 'Em breve';
-        const message = document.createElement('p');
-        message.textContent = `Ainda não há produtos disponíveis nesta categoria. Volte em breve para conferir as novidades.`;
-        empty.append(heading, message);
-        originals = [empty];
-      }
-    }
-  } catch { /* os cards provisórios continuam disponíveis sem catálogo */ }
-
-  grid.replaceChildren(...originals);
-  const productCount = originals.filter((card) => card.classList.contains('product-card')).length;
-  grid.dataset.productCount = String(productCount);
-  const count = originals.length;
-  if (productCount < 4 || !carousel || !previousButton || !nextButton) return;
-
-  const cloneCard = (card) => {
-    const clone = card.cloneNode(true);
-    clone.setAttribute('aria-hidden', 'true');
-    clone.dataset.carouselClone = 'true';
-    clone.querySelectorAll('a, button, input, select, textarea, [tabindex]').forEach((item) => item.setAttribute('tabindex', '-1'));
-    clone.querySelectorAll('[id]').forEach((item) => item.removeAttribute('id'));
-    return clone;
-  };
-  const leadingClones = originals.map(cloneCard);
-  const trailingClones = originals.map(cloneCard);
-  grid.replaceChildren(...leadingClones, ...originals, ...trailingClones);
-  originals.forEach((card, index) => {
-    card.setAttribute('role', 'group');
-    card.setAttribute('aria-roledescription', 'slide');
-    const productName = card.querySelector('h3')?.textContent;
-    card.setAttribute('aria-label', `${productName ? `${productName}, ` : ''}${index + 1} de ${count}`);
-  });
-  grid.classList.add('is-carousel');
-  carousel.classList.add('has-products-carousel');
-  carousel.setAttribute('aria-roledescription', 'carrossel');
-  grid.setAttribute('aria-label', 'Use as setas para navegar pelos produtos em destaque. Também é possível deslizar a lista.');
-  previousButton.hidden = false;
-  nextButton.hidden = false;
-
-  let cards = [...grid.children];
-  let currentIndex = count;
-  let autoplay = null;
-  let resumeAutoplay = null;
-  let scrollIdle = null;
-  let animationFrame = null;
-  let previousSnapType = null;
-  let pointerInside = false;
-
-  const cardOffset = (card) => card.getBoundingClientRect().left - grid.getBoundingClientRect().left + grid.scrollLeft;
-  const jumpTo = (left) => {
-    const previousBehavior = grid.style.scrollBehavior;
-    grid.style.scrollBehavior = 'auto';
-    grid.scrollLeft = left;
-    grid.style.scrollBehavior = previousBehavior;
-  };
-  const cancelMove = () => {
-    if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
-    animationFrame = null;
-    if (previousSnapType !== null) {
-      grid.style.scrollSnapType = previousSnapType;
-      previousSnapType = null;
-    }
-  };
-  const setPosition = (index, behavior = 'smooth') => {
-    const boundedIndex = Math.max(0, Math.min(index, cards.length - 1));
-    currentIndex = boundedIndex;
-    cancelMove();
-    const target = cardOffset(cards[boundedIndex]);
-    if (reducedMotion.matches || behavior === 'instant') {
-      jumpTo(target);
-      return;
-    }
-    const start = grid.scrollLeft;
-    let startedAt = null;
-    const duration = 700;
-    previousSnapType = grid.style.scrollSnapType;
-    grid.style.scrollSnapType = 'none';
-    const animate = (now) => {
-      if (startedAt === null) startedAt = now;
-      const progress = Math.min((now - startedAt) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      jumpTo(start + (target - start) * eased);
-      if (progress < 1) animationFrame = window.requestAnimationFrame(animate);
-      else cancelMove();
+  if (products.length) {
+    const track = document.createElement('div'); track.className = 'products-track';
+    const originalSet = document.createElement('div'); originalSet.className = 'products-track-set';
+    products.forEach((product) => originalSet.append(makeCard(product)));
+    const makeCopy = () => {
+      const copy = document.createElement('div'); copy.className = 'products-track-copy'; copy.setAttribute('aria-hidden', 'true'); copy.inert = true;
+      products.forEach((product) => copy.append(makeCard(product)));
+      return copy;
     };
-    animationFrame = window.requestAnimationFrame(animate);
+    const leadingCopy = makeCopy();
+    const copies = [makeCopy()]; track.append(leadingCopy, originalSet, ...copies); viewport.replaceChildren(track); viewport.classList.add('has-products');
+    const measure = () => {
+      const period = originalSet.getBoundingClientRect().width;
+      if (!period) return;
+      const copyCount = Math.max(1, Math.ceil(viewport.clientWidth / period));
+      while (copies.length < copyCount) { const copy = makeCopy(); copies.push(copy); track.append(copy); }
+      while (copies.length > copyCount) copies.pop().remove();
+      track.style.setProperty('--products-loop-start', `-${period}px`);
+      track.style.setProperty('--products-loop-end', `-${period * 2}px`);
+    };
+    requestAnimationFrame(measure);
+    if ('ResizeObserver' in window) { const observer = new ResizeObserver(measure); observer.observe(viewport); observer.observe(originalSet); }
+    else window.addEventListener('resize', measure);
+  }
+  const sync = () => {
+    const manuallyPaused = toggle?.getAttribute('aria-pressed') === 'true';
+    carousel.classList.toggle('motion-paused', manuallyPaused || reducedMotion.matches);
+    if (toggle) toggle.textContent = manuallyPaused ? 'Retomar movimento' : 'Pausar movimento';
+    previous.hidden = next.hidden = !reducedMotion.matches || !products.length;
+    carousel.classList.toggle('manual-controls', reducedMotion.matches && products.length > 0);
+    viewport.classList.toggle('manual-navigation', reducedMotion.matches);
   };
-  const stopAutoplay = () => {
-    window.clearInterval(autoplay);
-    window.clearTimeout(resumeAutoplay);
-    autoplay = null;
-    resumeAutoplay = null;
-  };
-  const canAutoplay = () => !reducedMotion.matches && !document.hidden && !pointerInside && !carousel.contains(document.activeElement);
-  const startAutoplay = () => {
-    stopAutoplay();
-    if (!canAutoplay()) return;
-    autoplay = window.setInterval(() => setPosition(currentIndex + 1), 3600);
-  };
-  const scheduleAutoplay = () => {
-    stopAutoplay();
-    if (!canAutoplay()) return;
-    resumeAutoplay = window.setTimeout(startAutoplay, 3600);
-  };
-  const normalizeLoop = () => {
-    const nearestIndex = cards.reduce((nearest, card, index) =>
-      Math.abs(cardOffset(card) - grid.scrollLeft) < Math.abs(cardOffset(cards[nearest]) - grid.scrollLeft) ? index : nearest, 0);
-    currentIndex = nearestIndex;
-    if (nearestIndex < count) {
-      currentIndex = nearestIndex + count;
-      jumpTo(cardOffset(cards[currentIndex]));
-    } else if (nearestIndex >= count * 2) {
-      currentIndex = nearestIndex - count;
-      jumpTo(cardOffset(cards[currentIndex]));
-    }
-  };
-
-  const setCardExpanded = (card, expanded) => {
-    const reveal = card?.querySelector('.product-reveal-toggle');
-    if (!card || !reveal) return;
-    card.classList.toggle('is-active', expanded);
-    reveal.setAttribute('aria-expanded', String(expanded));
-  };
-  const closeExpandedCards = (except = null) => {
-    grid.querySelectorAll('.product-card.is-active').forEach((card) => {
-      if (card !== except) setCardExpanded(card, false);
-    });
-  };
-  let touchStartX = 0;
-  let touchMoved = false;
-  let suppressTap = false;
-
-  carousel.addEventListener('pointerdown', (event) => {
-    if (!event.target.closest('.product-card')) closeExpandedCards();
-    if (event.pointerType === 'touch') {
-      touchStartX = event.clientX;
-      touchMoved = false;
-      return;
-    }
-  });
-  carousel.addEventListener('pointermove', (event) => {
-    if (event.pointerType === 'touch' && Math.abs(event.clientX - touchStartX) > 10) touchMoved = true;
-  }, { passive: true });
-  carousel.addEventListener('pointerup', (event) => {
-    if (event.pointerType === 'touch' && touchMoved) {
-      suppressTap = true;
-      closeExpandedCards();
-      window.setTimeout(() => { suppressTap = false; }, 0);
-    }
-  });
-  carousel.addEventListener('click', (event) => {
-    const reveal = event.target.closest('.product-reveal-toggle');
-    const card = event.target.closest('.product-card');
-    if (!card || event.target.closest('a')) return;
-    if (suppressTap) {
-      event.preventDefault();
-      return;
-    }
-    if (!reveal && !window.matchMedia('(hover: none)').matches) return;
-    const expanded = card.classList.contains('is-active');
-    closeExpandedCards(card);
-    setCardExpanded(card, reveal && event.detail === 0 ? true : !expanded);
-  });
-
-  jumpTo(cardOffset(cards[currentIndex]));
-  grid.addEventListener('scroll', () => {
-    window.clearTimeout(scrollIdle);
-    scrollIdle = window.setTimeout(normalizeLoop, 140);
-  }, { passive: true });
-  previousButton.addEventListener('click', () => { closeExpandedCards(); setPosition(currentIndex - 1); scheduleAutoplay(); });
-  nextButton.addEventListener('click', () => { closeExpandedCards(); setPosition(currentIndex + 1); scheduleAutoplay(); });
-  grid.addEventListener('keydown', (event) => {
-    if (event.target !== grid && !event.target.matches('.product-card')) return;
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-      event.preventDefault();
-      closeExpandedCards();
-      setPosition(currentIndex + (event.key === 'ArrowRight' ? 1 : -1));
-    }
-  });
-  carousel.addEventListener('pointerenter', (event) => {
-    if (event.pointerType === 'mouse') { pointerInside = true; stopAutoplay(); }
-  });
-  carousel.addEventListener('pointerleave', (event) => {
-    if (event.pointerType === 'mouse') { pointerInside = false; startAutoplay(); }
-  });
-  carousel.addEventListener('focusin', (event) => {
-    stopAutoplay();
-    const card = event.target.closest('.product-card');
-    if (card && event.target.matches('.product-reveal-toggle')) setCardExpanded(card, true);
-  });
-  carousel.addEventListener('focusout', (event) => {
-    const card = event.target.closest('.product-card');
-    if (card && !card.contains(event.relatedTarget)) setCardExpanded(card, false);
-    if (!carousel.contains(event.relatedTarget)) scheduleAutoplay();
-  });
-  carousel.addEventListener('touchstart', () => { stopAutoplay(); cancelMove(); }, { passive: true });
-  carousel.addEventListener('touchend', scheduleAutoplay, { passive: true });
-  document.addEventListener('visibilitychange', () => document.hidden ? stopAutoplay() : startAutoplay());
-  reducedMotion.addEventListener?.('change', () => {
-    if (reducedMotion.matches) { stopAutoplay(); cancelMove(); }
-    else startAutoplay();
-  });
-  window.addEventListener('resize', () => {
-    cards = [...grid.children];
-    cancelMove();
-    jumpTo(cardOffset(cards[currentIndex]));
-  });
-  startAutoplay();
+  toggle?.addEventListener('click', () => { toggle.setAttribute('aria-pressed', String(toggle.getAttribute('aria-pressed') !== 'true')); sync(); });
+  previous.addEventListener('click', () => viewport.scrollBy({ left: -viewport.clientWidth * .8, behavior: 'auto' }));
+  next.addEventListener('click', () => viewport.scrollBy({ left: viewport.clientWidth * .8, behavior: 'auto' }));
+  reducedMotion.addEventListener?.('change', sync); sync();
 }
 loadProducts();
-
 // O script oficial do Brevo valida os campos e controla a resposta real do envio.
 const brevoSuccess = document.querySelector('#success-message');
 const brevoError = document.querySelector('#error-message');

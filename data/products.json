@@ -1,1 +1,36 @@
-[]
+[
+  {
+    "id": "natal-em-aquarela",
+    "name": "Natal em Aquarela",
+    "shortDescription": "Kit com 10 cartões digitais.",
+    "description": "Kit com 10 cartões digitais.",
+    "fullDescription": "Kit com 10 cartões digitais.",
+    "category": "cartoes-digitais",
+    "subcategory": "natal",
+    "price": 14.9,
+    "image": "",
+    "imageAlt": "",
+    "previewImages": [],
+    "kitContents": ["10 cartões digitais"],
+    "checkoutUrl": "",
+    "status": "published",
+    "featured": true
+  },
+  {
+    "id": "os-biscoitos",
+    "name": "Os Biscoitos",
+    "shortDescription": "Kit com 10 cartões digitais.",
+    "description": "Kit com 10 cartões digitais.",
+    "fullDescription": "Kit com 10 cartões digitais.",
+    "category": "cartoes-digitais",
+    "subcategory": "natal",
+    "price": 14.9,
+    "image": "assets/img/categoria/cartao_natal.webp",
+    "imageAlt": "Cartão natalino ilustrado com um biscoito de gengibre",
+    "previewImages": [],
+    "kitContents": ["10 cartões digitais"],
+    "checkoutUrl": "",
+    "status": "published",
+    "featured": true
+  }
+]
