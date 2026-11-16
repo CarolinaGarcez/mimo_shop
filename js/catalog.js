@@ -40,6 +40,7 @@
   };
   let state = getState();
   let products = [];
+  let publishedProductCount = 0;
   let returnFocus = null;
   let previousBodyOverflow = '';
 
@@ -108,7 +109,7 @@
       placeholder.className = 'catalog-image-placeholder';
       placeholder.setAttribute('role', 'img');
       placeholder.setAttribute('aria-label', alt || 'Imagem indisponível');
-      placeholder.textContent = 'Prévia em breve';
+      placeholder.textContent = 'Prévia oficial em preparação';
       image.replaceWith(placeholder);
     }, { once: true });
     return image;
@@ -129,7 +130,7 @@
     }));
     const format = document.querySelector('#preview-format');
     format.hidden = !(typeof product.format === 'string' && product.format.trim());
-    format.textContent = format.hidden ? '' : product.format;
+    format.textContent = format.hidden ? '' : `Arquivos incluídos: ${product.fileCount} · Formato: ${product.format}`;
     const gallery = document.querySelector('#preview-gallery');
     const images = [product.image, ...(Array.isArray(product.previewImages) ? product.previewImages : [])].filter(Boolean);
     gallery.replaceChildren();
@@ -137,7 +138,7 @@
     else {
       const placeholder = document.createElement('div');
       placeholder.className = 'catalog-image-placeholder preview-placeholder';
-      placeholder.textContent = 'Imagem em breve';
+      placeholder.textContent = 'Prévia oficial em preparação';
       gallery.append(placeholder);
     }
     const buy = document.querySelector('#preview-buy');
@@ -163,8 +164,18 @@
     if (!results.length) {
       const empty = document.createElement('div');
       empty.className = 'catalog-empty';
-      const heading = document.createElement('h2'); heading.textContent = 'Nenhum mimo por aqui';
-      const message = document.createElement('p'); message.textContent = 'Tente buscar por outro termo ou limpar os filtros para ver os produtos disponíveis.';
+      const heading = document.createElement('h2');
+      const message = document.createElement('p');
+      if (publishedProductCount === 0) {
+        heading.textContent = 'Nenhum produto publicado';
+        message.textContent = 'Novos mimos estarão disponíveis em breve.';
+      } else if (products.length === 0) {
+        heading.textContent = 'Produtos em preparação';
+        message.textContent = 'As prévias, os arquivos e o checkout estarão disponíveis quando os produtos estiverem prontos para compra.';
+      } else {
+        heading.textContent = 'Nenhum mimo por aqui';
+        message.textContent = 'Tente buscar por outro termo ou limpar os filtros para ver os produtos disponíveis.';
+      }
       empty.append(heading, message);
       grid.append(empty);
       syncUrl();
@@ -179,7 +190,7 @@
       else {
         const placeholder = document.createElement('div');
         placeholder.className = 'catalog-image-placeholder';
-        placeholder.textContent = 'Imagem em breve';
+        placeholder.textContent = 'Prévia oficial em preparação';
         media.append(placeholder);
       }
       const body = document.createElement('div'); body.className = 'catalog-card-body';
@@ -188,16 +199,25 @@
       category.textContent = `${categoryNames[product.category] || ''}${subcategoryLabel ? ` · ${subcategoryLabel}` : ''}`;
       const title = document.createElement('h2'); title.textContent = product.name;
       const description = document.createElement('p'); description.className = 'catalog-card-description'; description.textContent = product.shortDescription || product.description;
+      const digitalNote = document.createElement('p'); digitalNote.className = 'catalog-card-kit'; digitalNote.textContent = 'Arquivo digital; nenhum item físico será enviado.';
       const contents = document.createElement('p'); contents.className = 'catalog-card-kit';
       contents.textContent = Array.isArray(product.kitContents) ? product.kitContents.join(' · ') : '';
+      const files = document.createElement('p'); files.className = 'catalog-card-kit catalog-card-files';
+      files.textContent = Number.isInteger(product.fileCount) && product.fileCount > 0 && typeof product.format === 'string' && product.format.trim()
+        ? `Arquivos incluídos: ${product.fileCount} · Formato: ${product.format}`
+        : '';
       const price = document.createElement('p'); price.className = 'catalog-card-price';
       price.textContent = typeof product.price === 'number' ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price) : '';
       const actions = document.createElement('div'); actions.className = 'catalog-card-actions';
-      const preview = document.createElement('button'); preview.className = 'catalog-preview-button'; preview.type = 'button'; preview.textContent = 'Ver prévia';
-      preview.addEventListener('click', () => openPreview(product, preview));
-      actions.append(preview, makeBuyControl(product));
-      body.append(category, title, description);
+      if (window.MimoProductData.hasPreview(product)) {
+        const preview = document.createElement('button'); preview.className = 'catalog-preview-button'; preview.type = 'button'; preview.textContent = 'Ver prévia';
+        preview.addEventListener('click', () => openPreview(product, preview));
+        actions.append(preview);
+      }
+      actions.append(makeBuyControl(product));
+      body.append(category, title, description, digitalNote);
       if (contents.textContent) body.append(contents);
+      if (files.textContent) body.append(files);
       body.append(price, actions);
       card.append(media, body);
       grid.append(card);
@@ -229,12 +249,18 @@
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   });
 
-  fetch('data/products.json')
+  fetch(new URL('/data/products.json', window.location.origin))
     .then((response) => { if (!response.ok) throw new Error('Catalog unavailable'); return response.json(); })
-    .then((data) => {
-      products = Array.isArray(data) ? data.filter((product) => product && product.status === 'published' && typeof product.id === 'string' && typeof product.name === 'string') : [];
+    .then(async (data) => {
+      const published = Array.isArray(data) ? data.filter((product) => product && product.status === 'published' && typeof product.id === 'string' && typeof product.name === 'string') : [];
+      publishedProductCount = published.length;
+      products = window.MimoProductData.displayable(published);
       error.hidden = true;
       render();
     })
-    .catch(() => { error.hidden = false; products = []; render(); });
+    .catch(() => {
+      error.hidden = false;
+      count.textContent = '';
+      grid.replaceChildren();
+    });
 })();

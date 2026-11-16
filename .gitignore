@@ -1,0 +1,34 @@
+# Local secrets and private configuration
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+*.pem
+
+# Local development state and temporary files
+.wrangler/
+node_modules/
+/public/
+*.log
+*.bak
+*.old
+*.orig
+*.tmp
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Work materials: keep locally, exclude from the public repository/site snapshot
+/artifacts/
+/docs/
+/emails/
+/hero-preview*.png
+
+# Private commerce and customer files must stay outside the public Pages output
+/private-delivery/
+/customer-data/
+/contact-exports/
+/contacts/
+/exports/
