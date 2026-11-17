@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -37,10 +37,7 @@ const files = [
   'assets/img/elementos/raio.webp',
   'assets/img/elementos/s2.webp',
   'assets/img/elementos/star.webp',
-  'assets/img/ilustracoes/Adesivo de lótus.webp',
-  'assets/img/ilustracoes/hero.png',
-  'assets/img/ilustracoes/Luke.webp',
-  'assets/img/ilustracoes/Preguica.webp',
+  'assets/img/ilustracoes/hero.webp',
   'assets/img/ilustracoes/lotus.webp',
   'assets/img/logo/logo1.webp',
   'assets/img/logo/principal.webp',
@@ -106,12 +103,6 @@ function readSource(relativePath) {
 const missingSources = files.filter((file) => !hasExactSourcePath(file));
 if (missingSources.length) fail(`source files missing or case differs: ${missingSources.join(', ')}`);
 
-const existingOutput = listFiles(output);
-const unexpectedOutput = existingOutput.filter((file) => !files.includes(file));
-if (unexpectedOutput.length) {
-  fail(`review files outside the publication allowlist; nothing was deleted: ${unexpectedOutput.join(', ')}`);
-}
-
 let products;
 try {
   products = JSON.parse(readSource('data/products.json'));
@@ -138,6 +129,12 @@ for (const [id, [name, price]] of expectedProducts) {
     try { url = new URL(checkout); } catch { fail(`checkoutUrl for ${id} is not a valid URL`); }
     if (url.protocol !== 'https:' || !(url.hostname === 'kiwify.com.br' || url.hostname.endsWith('.kiwify.com.br'))) {
       fail(`checkoutUrl for ${id} must be empty or a Kiwify HTTPS URL`);
+    }
+  }
+  const productImages = [product.image, ...(Array.isArray(product.previewImages) ? product.previewImages : [])].filter(Boolean);
+  for (const image of productImages) {
+    if (typeof image !== 'string' || !files.includes(image) || !hasExactSourcePath(image)) {
+      fail(`product image for ${id} must point to an existing asset included in the publication allowlist`);
     }
   }
 }
@@ -219,6 +216,8 @@ for (const cssFile of ['css/styles.css', 'css/tokens.css']) {
 }
 if (referenceErrors.length) fail(`broken local references: ${referenceErrors.join('; ')}`);
 
+if (output !== path.join(root, 'public')) fail('refusing to clean an unexpected output directory');
+rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });
 for (const relativePath of files) {
   const destination = path.join(output, relativePath);

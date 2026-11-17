@@ -9,7 +9,7 @@
 - Root directory: `/` (raiz do repositorio).
 - Previews: configure previews para branches que nao sejam `main`; somente `main` deve promover uma producao. Essa separacao depende da configuracao no painel.
 
-O site usa HTML, CSS, JavaScript e dados estaticos. O script Node sem dependencias copia uma lista permitida de fontes para `public/`, valida JSON dos kits, canonicals, sitemap, referencias internas e hash CSP do script Brevo. Ele falha se encontrar arquivos extras na pasta de saida, em vez de publica-los ou apaga-los. `public/` e uma pasta gerada localmente e esta no `.gitignore`; nao a adicione ao commit. Arquivos de trabalho continuam fora da saida e nao sao apagados pelo build.
+O site usa HTML, CSS, JavaScript e dados estaticos. O script Node sem dependencias valida as fontes e os dados, remove somente a pasta gerada `public/` e a recria a partir de uma lista permitida. A validacao confere JSON dos kits, imagens dos produtos, canonicals, sitemap, referencias locais e hash CSP do script Brevo; a saida final precisa corresponder exatamente a allowlist. Isso remove residuos de builds anteriores sem apagar fontes ou materiais de trabalho. `public/` e uma pasta gerada localmente e esta no `.gitignore`; nao a adicione ao commit.
 
 ## Publicar
 
@@ -18,7 +18,7 @@ Revise as alteracoes e o indice do Git antes de criar um commit. Adicione explic
 ```powershell
 git status --short
 git switch -c pages-publication-preview
-git add .gitignore _headers DEPLOYMENT.md scripts/build-pages.mjs index.html catalogo.html contato.html entrega-digital.html privacidade.html termos.html 404.html robots.txt sitemap.xml css/styles.css css/tokens.css data/products.json js/catalog.js js/main.js js/product-data.js
+git add .gitignore _headers DEPLOYMENT.md scripts/build-pages.mjs index.html catalogo.html contato.html entrega-digital.html privacidade.html termos.html 404.html robots.txt sitemap.xml css/styles.css css/tokens.css data/products.json js/catalog.js js/main.js js/product-data.js assets/img/ilustracoes/hero.png assets/img/ilustracoes/hero.webp
 git add -u artifacts docs emails hero-preview.png hero-preview-mobile.png
 git diff --cached --stat
 git commit -m "Prepare isolated Cloudflare Pages output"
