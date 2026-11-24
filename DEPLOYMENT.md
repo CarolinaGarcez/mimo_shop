@@ -18,14 +18,13 @@ Revise as alteracoes e o indice do Git antes de criar um commit. Adicione explic
 ```powershell
 git status --short
 git switch -c pages-publication-preview
-git add .gitignore _headers DEPLOYMENT.md scripts/build-pages.mjs index.html catalogo.html contato.html entrega-digital.html privacidade.html termos.html 404.html robots.txt sitemap.xml css/styles.css css/tokens.css data/products.json js/catalog.js js/main.js js/product-data.js assets/img/ilustracoes/hero.png assets/img/ilustracoes/hero.webp
-git add -u artifacts docs emails hero-preview.png hero-preview-mobile.png
+git add .gitignore _headers DEPLOYMENT.md scripts/build-pages.mjs index.html catalogo.html contato.html entrega-digital.html privacidade.html termos.html 404.html robots.txt sitemap.xml css/styles.css css/tokens.css data/products.json js/catalog.js js/main.js js/product-data.js assets/img/ilustracoes/hero.webp
 git diff --cached --stat
 git commit -m "Prepare isolated Cloudflare Pages output"
 git push -u origin pages-publication-preview
 ```
 
-Revise o resumo staged antes do commit. O comando `git add -u` acima remove do branch atual os materiais de trabalho que ja estao ausentes localmente; ele nao apaga esses arquivos do historico antigo do Git.
+Revise o resumo staged antes do commit e inclua somente fontes aprovadas. Os diretorios `artifacts/`, `docs/` e `emails/` e os arquivos `hero-preview*.png` ficam fora da saida por causa da allowlist; nao os remova do workspace nem use `git add -u` para excluir materiais de trabalho. A geracao limpa de `public/` nao apaga esses arquivos nem altera o historico Git. `public/` e ignorada pelo Git porque o Cloudflare executa o build ao criar o deployment.
 
 Configure `main` como branch de producao e deployments de preview para branches nao produtivas antes de enviar a branch. O push de `pages-publication-preview` deve criar apenas um preview. Depois de validar o preview e confirmar a configuracao, promova o mesmo commit:
 
@@ -59,11 +58,37 @@ curl.exe -i "$previewUrl/css/styles.css"
 curl.exe -i "$previewUrl/js/main.js"
 curl.exe -i "$previewUrl/data/products.json"
 curl.exe -i "$previewUrl/assets/img/logo/logo1.webp"
-curl.exe -i "$previewUrl/artifacts/hero/after-desktop.png"
+curl.exe -i "$previewUrl/.gitignore"
+curl.exe -i "$previewUrl/DEPLOYMENT.md"
+curl.exe -i "$previewUrl/scripts/build-pages.mjs"
+curl.exe -i "$previewUrl/data/products.schema.json"
+curl.exe -i "$previewUrl/hero-preview.png"
+curl.exe -i "$previewUrl/hero-preview-mobile.png"
 curl.exe -i "$previewUrl/docs/desing_system.md"
 curl.exe -i "$previewUrl/emails/boas-vindas.html"
-curl.exe -i "$previewUrl/hero-preview.png"
+curl.exe -i "$previewUrl/artifacts/hero/after-desktop.png"
 curl.exe -i "$previewUrl/assets/img/inspiracao/Guia-Visual.png"
+curl.exe -i "$previewUrl/assets/img/inspiracao/mock.png"
+curl.exe -i "$previewUrl/assets/img/ilustracoes/hero.png"
+curl.exe -i "$previewUrl/assets/img/produtos/"
+curl.exe -i "$previewUrl/assets/img/produtos/cartoes/Cole%C3%A7%C3%A3o%20A%20Luz%20do%20Primeiro%20Natal.png"
+curl.exe -i "$previewUrl/assets/img/produtos/cartoes/cole%C3%A7%C3%A3o%20de%20Natal%20em%20aquarela.png"
+curl.exe -i "$previewUrl/assets/img/produtos/cartoes/cole%C3%A7%C3%A3o%20Os%20Biscoitos_%20cart%C3%B5es%20natalinos%20retr%C3%B4.png"
+curl.exe -i "$previewUrl/assets/img/produtos/cartoes/Kit%20com%2010%20cart%C3%B5es%20Lulinha%2013.png"
+curl.exe -i "$previewUrl/assets/img/produtos/colorir/adulto/Mockup%20do%20Jardim%20C%C3%B3smico.png"
+curl.exe -i "$previewUrl/assets/img/produtos/colorir/infantil/o%20natal%20das%20pequenas%20coisas.png"
+curl.exe -i "$previewUrl/.env"
+curl.exe -i "$previewUrl/.dev.vars"
+curl.exe -i "$previewUrl/.git/config"
+curl.exe -i "$previewUrl/scripts/build-pages.mjs.bak"
+curl.exe -i "$previewUrl/DEPLOYMENT.md.old"
+curl.exe -i "$previewUrl/index.html~"
+curl.exe -i "$previewUrl/assets/img/inspiracao/Guia-Visual.png.bak"
+curl.exe -i "$previewUrl/private-delivery/"
+curl.exe -i "$previewUrl/customer-data/"
+curl.exe -i "$previewUrl/contact-exports/"
+curl.exe -i "$previewUrl/contacts/"
+curl.exe -i "$previewUrl/exports/"
 ```
 
 Esperado: paginas e recursos usados respondem 200; robots e sitemap retornam texto e XML respectivamente; URL inexistente e caminhos internos retornam 404; os headers incluem CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy e Permissions-Policy. Pages deve fornecer `Cache-Control: public, max-age=0, must-revalidate`; os nomes atuais de assets nao sao versionados por hash, portanto nao defina `immutable`. Em navegador, teste newsletter sem enviar o formulario, filtros, menu, teclado, zoom 200%, larguras de 360, 390, 768 e 1440 px e console/rede para bloqueios de CSP ou recursos mistos.

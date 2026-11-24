@@ -41,6 +41,8 @@ const files = [
   'assets/img/ilustracoes/lotus.webp',
   'assets/img/logo/logo1.webp',
   'assets/img/logo/principal.webp',
+  'assets/img/produtos/cartoes/coleção de Natal em aquarela.png',
+  'assets/img/produtos/cartoes/coleção Os Biscoitos_ cartões natalinos retrô.png',
   'assets/img/vira mato/selo_viramato.webp',
 ];
 
@@ -111,17 +113,55 @@ try {
 }
 if (!Array.isArray(products)) fail('data/products.json must contain a product array');
 
+// Product image paths are assigned dynamically by the homepage and catalog.
+// Validate every record so adding a product cannot silently publish a missing
+// or unapproved asset.
+for (const product of products) {
+  if (!product || typeof product !== 'object') fail('every product record must be an object');
+  const previewImages = product.previewImages ?? [];
+  if (!Array.isArray(previewImages)) fail(`previewImages for ${product.id ?? 'unknown product'} must be an array`);
+  for (const image of [product.image, ...previewImages].filter(Boolean)) {
+    if (typeof image !== 'string' || !files.includes(image) || !hasExactSourcePath(image)) {
+      fail(`product image for ${product.id ?? 'unknown product'} must point to an existing asset included in the publication allowlist`);
+    }
+  }
+}
+
 const expectedProducts = new Map([
-  ['natal-em-aquarela', ['Natal em Aquarela', 14.9]],
-  ['os-biscoitos', ['Os Biscoitos', 14.9]],
+  ['natal-em-aquarela', {
+    name: 'Kit Natal em Aquarela — 10 Cartões Digitais',
+    price: 14.9,
+    category: 'cartoes-digitais',
+    subcategory: 'natal',
+    checkoutUrl: 'https://pay.kiwify.com.br/uiqNrZi',
+  }],
+  ['os-biscoitos', {
+    name: 'Kit Natal Biscoitinhos — 10 Cartões Digitais',
+    price: 14.9,
+    category: 'cartoes-digitais',
+    subcategory: 'natal',
+    checkoutUrl: 'https://pay.kiwify.com.br/8NNTQpx',
+  }],
+  ['kit-13', {
+    name: 'Kit 13 — 10 Cartões Digitais',
+    price: 14.9,
+    category: 'cartoes-digitais',
+    subcategory: 'natal',
+    checkoutUrl: 'https://pay.kiwify.com.br/VO93vv0',
+  }],
 ]);
-for (const [id, [name, price]] of expectedProducts) {
+for (const [id, expected] of expectedProducts) {
   const matches = products.filter((product) => product?.id === id);
   if (matches.length !== 1) fail(`expected one product record for ${id}`);
   const [product] = matches;
   const cards = (product.kitContents ?? []).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (product.name !== name || product.price !== price || !/\b10\b.*cartoes|cartoes.*\b10\b/.test(cards)) {
-    fail(`commercial fields must preserve the approved name, price and 10-card kit for ${id}`);
+  if (product.name !== expected.name || product.price !== expected.price || product.category !== expected.category ||
+      product.subcategory !== expected.subcategory || product.checkoutUrl !== expected.checkoutUrl ||
+      !/\b10\b.*cartoes|cartoes.*\b10\b/.test(cards)) {
+    fail(`name, price, category, subcategory, checkout and 10-card kit must match the approved data for ${id}`);
+  }
+  if (typeof product.image !== 'string' || !Array.isArray(product.previewImages)) {
+    fail(`image and previewImages fields for ${id} must use the published product schema`);
   }
   const checkout = product.checkoutUrl ?? '';
   if (checkout !== '') {
@@ -131,10 +171,18 @@ for (const [id, [name, price]] of expectedProducts) {
       fail(`checkoutUrl for ${id} must be empty or a Kiwify HTTPS URL`);
     }
   }
-  const productImages = [product.image, ...(Array.isArray(product.previewImages) ? product.previewImages : [])].filter(Boolean);
-  for (const image of productImages) {
-    if (typeof image !== 'string' || !files.includes(image) || !hasExactSourcePath(image)) {
-      fail(`product image for ${id} must point to an existing asset included in the publication allowlist`);
+}
+
+// The catalog and homepage set img.src from product.image and product.previewImages.
+// Product paths above are checked against the allowlist; catch any separate image
+// paths embedded directly in JavaScript as well.
+for (const scriptFile of ['js/catalog.js', 'js/main.js', 'js/product-data.js']) {
+  const script = readSource(scriptFile);
+  const assetReferences = [...script.matchAll(/["'`](\/?assets\/[^"'`\s?#]+\.(?:avif|gif|jpe?g|png|svg|webp))["'`]/gi)];
+  for (const [, assetPath] of assetReferences) {
+    const relativePath = decodeURIComponent(assetPath).replace(/^\//, '');
+    if (!files.includes(relativePath) || !hasExactSourcePath(relativePath)) {
+      fail(`${scriptFile} references an image outside the publication allowlist: ${assetPath}`);
     }
   }
 }

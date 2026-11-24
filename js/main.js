@@ -44,7 +44,13 @@ async function loadProducts() {
   const next = carousel.querySelector('.products-next');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const safeUrl = (value) => { if (typeof value !== 'string' || !value.trim()) return null; try { const url = new URL(value.trim(), location.href); return ['https:', 'http:'].includes(url.protocol) && url.origin === location.origin ? url : null; } catch { return null; } };
-  const checkoutUrl = (value) => { const url = safeUrl(value); return url?.protocol === 'https:' && (url.hostname === 'kiwify.com.br' || url.hostname.endsWith('.kiwify.com.br')) ? url : null; };
+  const checkoutUrl = (value) => {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    try {
+      const url = new URL(value.trim());
+      return url.protocol === 'https:' && (url.hostname === 'kiwify.com.br' || url.hostname.endsWith('.kiwify.com.br')) ? url : null;
+    } catch { return null; }
+  };
   const money = (value) => typeof value === 'number' && Number.isFinite(value) ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value) : '';
   const productImage = (product) => safeUrl(product.image);
   const categoryName = (value) => ({ 'cartoes-digitais': 'Cartões digitais', 'livros-colorir': 'Livros de colorir', 'calendarios-organizacao': 'Calendários e organização' }[value] || String(value || 'Destaque').replace(/[-_]/g, ' '));
@@ -110,6 +116,7 @@ async function loadProducts() {
     const category = document.createElement('span'); category.className = 'product-category'; category.textContent = categoryName(product.category); info.append(category);
     const title = document.createElement('h3'); title.textContent = product.name; info.append(title);
     const description = document.createElement('p'); description.className = 'product-description'; description.textContent = product.shortDescription || product.description; info.append(description);
+    const digitalNote = document.createElement('p'); digitalNote.className = 'product-digital-note'; digitalNote.textContent = window.MimoProductData.digitalDeliveryNote; info.append(digitalNote);
     if (Number.isInteger(product.fileCount) && product.fileCount > 0 && typeof product.format === 'string' && product.format.trim()) {
       const fileDetails = document.createElement('p'); fileDetails.className = 'product-description product-files-info'; fileDetails.textContent = `Arquivos incluídos: ${product.fileCount} · Formato: ${product.format}`; info.append(fileDetails);
     }
@@ -177,6 +184,40 @@ loadProducts();
 const brevoSuccess = document.querySelector('#success-message');
 const brevoError = document.querySelector('#error-message');
 const brevoForm = document.querySelector('#sib-form');
+const brevoContainer = document.querySelector('#sib-form-container');
+const brevoSubmitButton = brevoForm?.querySelector('button[type="submit"]');
+const brevoSubmitLabel = brevoSubmitButton?.querySelector('span');
+const brevoIdleLabel = brevoSubmitLabel?.textContent || '';
+let brevoSubmissionPending = false;
+
+const setBrevoSubmissionPending = (pending) => {
+  brevoSubmissionPending = pending;
+  brevoForm?.setAttribute('aria-busy', String(pending));
+  brevoSubmitButton?.setAttribute('aria-busy', String(pending));
+  if (brevoSubmitLabel) brevoSubmitLabel.textContent = pending ? 'Enviando…' : brevoIdleLabel;
+};
+
+brevoForm?.addEventListener('submit', (event) => {
+  if (brevoSubmissionPending) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+
+  brevoSuccess?.classList.remove('sib-form-message-panel--active');
+  brevoError?.classList.remove('sib-form-message-panel--active');
+  setBrevoSubmissionPending(true);
+
+  // Brevo validates the form in its submit listener and disables the button
+  // synchronously only when it starts a request. Clear the pending state when
+  // that validation blocks submission, so the visitor can correct the fields.
+  queueMicrotask(() => {
+    if (brevoSubmissionPending && !brevoSubmitButton?.disabled) {
+      setBrevoSubmissionPending(false);
+    }
+  });
+}, { capture: true });
+
 const updateBrevoMessages = (records = []) => {
   const successActive = brevoSuccess?.classList.contains('sib-form-message-panel--active');
   const errorActive = brevoError?.classList.contains('sib-form-message-panel--active');
@@ -184,24 +225,20 @@ const updateBrevoMessages = (records = []) => {
     const lastActivated = [...records].reverse().find((record) => record.attributeName === 'class' && record.target.classList.contains('sib-form-message-panel--active'))?.target;
     (lastActivated === brevoError ? brevoSuccess : brevoError).classList.remove('sib-form-message-panel--active');
   }
-  if (brevoSuccess?.classList.contains('sib-form-message-panel--active')) {
-    const text = brevoSuccess.querySelector('.sib-form-message-panel__inner-text');
-    if (text) text.textContent = 'Recebemos sua solicitação. Se a confirmação for necessária, siga as instruções enviadas por e-mail para concluir a inscrição. 💗';
-  }
-  if (brevoError?.classList.contains('sib-form-message-panel--active')) {
-    const text = brevoError.querySelector('.sib-form-message-panel__inner-text');
-    if (text) text.textContent = 'Não conseguimos concluir sua inscrição. Tente novamente.';
+  const hasResponseMessage = brevoSuccess?.classList.contains('sib-form-message-panel--active')
+    || brevoError?.classList.contains('sib-form-message-panel--active');
+  const formReplacedByBrevo = brevoForm && !brevoForm.isConnected;
+  if (brevoSubmissionPending && (hasResponseMessage || formReplacedByBrevo)) {
+    setBrevoSubmissionPending(false);
   }
 };
-brevoForm?.addEventListener('submit', () => {
-  brevoSuccess?.classList.remove('sib-form-message-panel--active');
-  brevoError?.classList.remove('sib-form-message-panel--active');
-});
-if (brevoSuccess && brevoError) {
+if (brevoContainer && (brevoSuccess || brevoError)) {
   const brevoMessageObserver = new MutationObserver(updateBrevoMessages);
-  [brevoSuccess, brevoError].forEach((panel) => brevoMessageObserver.observe(panel, {
+  brevoMessageObserver.observe(brevoContainer, {
     attributes: true,
-    attributeFilter: ['class']
-  }));
+    attributeFilter: ['class'],
+    childList: true,
+    subtree: true
+  });
   updateBrevoMessages();
 }

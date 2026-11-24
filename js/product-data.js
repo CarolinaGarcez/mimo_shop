@@ -19,6 +19,7 @@
 
   window.MimoProductData = Object.freeze({
     displayable: (products) => (Array.isArray(products) ? products : []).filter(isDisplayable),
-    hasPreview: (product) => Boolean(safeImageUrl(product?.image) || (Array.isArray(product?.previewImages) && product.previewImages.some(safeImageUrl)))
+    hasPreview: (product) => Boolean(safeImageUrl(product?.image) || (Array.isArray(product?.previewImages) && product.previewImages.some(safeImageUrl))),
+    digitalDeliveryNote: 'Arquivo digital; nenhum item físico será enviado.'
   });
 })();

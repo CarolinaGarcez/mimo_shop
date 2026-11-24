@@ -199,7 +199,7 @@
       category.textContent = `${categoryNames[product.category] || ''}${subcategoryLabel ? ` · ${subcategoryLabel}` : ''}`;
       const title = document.createElement('h2'); title.textContent = product.name;
       const description = document.createElement('p'); description.className = 'catalog-card-description'; description.textContent = product.shortDescription || product.description;
-      const digitalNote = document.createElement('p'); digitalNote.className = 'catalog-card-kit'; digitalNote.textContent = 'Arquivo digital; nenhum item físico será enviado.';
+      const digitalNote = document.createElement('p'); digitalNote.className = 'catalog-card-kit'; digitalNote.textContent = window.MimoProductData.digitalDeliveryNote;
       const contents = document.createElement('p'); contents.className = 'catalog-card-kit';
       contents.textContent = Array.isArray(product.kitContents) ? product.kitContents.join(' · ') : '';
       const files = document.createElement('p'); files.className = 'catalog-card-kit catalog-card-files';
@@ -216,7 +216,7 @@
       }
       actions.append(makeBuyControl(product));
       body.append(category, title, description, digitalNote);
-      if (contents.textContent) body.append(contents);
+      if (contents.textContent && !normalize(description.textContent).includes(normalize(contents.textContent))) body.append(contents);
       if (files.textContent) body.append(files);
       body.append(price, actions);
       card.append(media, body);
